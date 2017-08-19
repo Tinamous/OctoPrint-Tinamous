@@ -1,15 +1,10 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-import octoprint.plugin
 from octoprint.util import RepeatedTimer
+from octoprint.events import eventManager, Events
 
 import octoprint.plugin
-
-import logging
-import octoprint.plugin
-import os
-import json
 import requests
 
 # Publish events to Tinmaous and provide a simple UI to show values from certain devices
@@ -34,19 +29,6 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 	#def initialize(self):
 		#self._logger.setLevel(logging.DEBUG)
 
-	def start_timers(self, ):
-		if self._settings.get(["auto_post_measurements", "enabled"]):
-			measurements_interval = self._settings.get(["auto_post_measurements", "interval_minutes"]) * 60.0
-			self._measurements_timer = RepeatedTimer(measurements_interval, self.auto_post_measurement, None, None, True)
-			self._measurements_timer.start()
-			self._logger.info("Started auto-post measurements timer at {}s".format(measurements_interval))
-
-		if self._settings.get(["auto_post_picture", "enabled"]):
-			picture_interval = self._settings.get(["auto_post_picture", "interval_minutes"]) * 60.0
-			self._picture_timer = RepeatedTimer(picture_interval, self.auto_post_picture, None, None, True)
-			self._picture_timer.start()
-			self._logger.info("Started auto-post picture timer at {}s".format(picture_interval))
-
 	##~~ SettingsPlugin mixin
 
 	def get_settings_defaults(self):
@@ -62,7 +44,7 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 			auto_post_picture = dict (
 				enabled=True,
 				# Automatically post a status message (picture) every n-minutes.
-				interval_minutes=10,
+				interval_minutes=1,
 				include_hashtag="#TodayOnTheUltimaker",
 				# Tinamous allows for a unique media id so that multiple photos can be
 				# assigned to the one id to allow a timeseries style view.
@@ -160,29 +142,48 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 			self.post_power_measurements(payload)
 			return
 
+		if event == Events.PRINT_STARTED:
+			self.start_picture_timer()
+
+		if event == Events.PRINT_RESUMED:
+			self.start_picture_timer()
+			self.post_picture_to_tinamous(event, "", True)
+
+		if event == Events.PRINT_PAUSED:
+			self.stop_picture_timer()
+
+		if event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
+			self.stop_picture_timer()
+			self.post_picture_to_tinamous(event, "", True)
+			return
+
+		# Publish the status message for the event if configured.
 		if event in events and events[event] and events[event]['Enabled']:
-
-			## Get the event settings, message, enabled, etc.
-			event_settings = self._settings.get(['print_events', event], merged=True)
-
-			status_message = self.populate_status_message(event_settings, payload)
-
-			message = {}
-			# Message contains 'username' and 'filename' replacement tokens.
-			message['Message'] = status_message
-			message['Lite'] = True
-
-			if (event_settings["IncludePicture"]):
-				self._logger.warn("Not taking picture. TODO: Take and post picture!")
-				# if posting a picture with the status message.
-				# message['MediaIds'] = []
-
-			self._logger.debug("Attempting post of Tinamous status message: {}".format(message))
-
-			self.post_status_to_tinamous(message)
+			self.post_event_status_message(event, payload)
 		else:
 			self._logger.debug("Tinamous not configured for event: {0}".format(event))
 			return
+
+	# Publish a status message for the event.
+	def post_event_status_message(self, event, payload):
+		## Get the event settings, message, enabled, etc.
+		event_settings = self._settings.get(['print_events', event], merged=True)
+
+		status_message = self.populate_status_message(event_settings, payload)
+
+		message = {}
+		# Message contains 'username' and 'filename' replacement tokens.
+		message['Message'] = status_message
+		message['Lite'] = True
+
+		if (event_settings["IncludePicture"]):
+			self._logger.warn("Not taking picture. TODO: Take and post picture!")
+			# if posting a picture with the status message.
+			# message['MediaIds'] = []
+
+		self._logger.debug("Attempting post of Tinamous status message: {}".format(message))
+
+		self.post_status_to_tinamous(message)
 
 	def populate_status_message(self, event_settings, payload):
 		username = "somebody"
@@ -227,13 +228,26 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 
 	def auto_post_picture(self):
 		# Don't auto-post if not including a snap-shot picture.
-		if self._settings.get(['include_snapshot']):
+		enabled = self._settings.get(['auto_post_picture', 'enabled'])
+		if enabled:
 			self._logger.info("TODO: post picture to Tinamous")
+			tag = self._settings.get(['auto_post_picture', 'include_hashtag'])
+			unique_media_name = self._settings.get(['auto_post_picture', 'media_unique_id'])
+			id = self.post_picture_to_tinamous(tag, unique_media_name, True)
+			self._logger.info("posted picture to Tinamous. Id: {0}".format(id))
 
+	# Timer based posting of printer measurements
+	# e.g. nozzle temperature etc.
 	def auto_post_measurement(self):
 		self._logger.info("TODO: post temperatures to Tinamous")
 
+	# Post a Pi Power measurement
+	# Needs the Pi Power plugin and Pi Power Hat.
 	def post_power_measurements(self, payload):
+		# Don't post power measurements if we are disbaled.
+		if not self._settings.get(["enabled"]):
+			return
+
 		# expect payload to be the Pi Power Measurements measurement block.
 		senmlFields = []
 		senmlFields.append({"n": "V", "u": "V", "v": payload["voltage"]})
@@ -267,6 +281,30 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 
 		self._logger.debug("Posted power successfully to Tinamous!")
 
+	# ==========================
+	# Helpers
+	# ==========================
+
+	def start_timers(self):
+		if self._settings.get(["auto_post_measurements", "enabled"]):
+			measurements_interval = self._settings.get(["auto_post_measurements", "interval_minutes"]) * 60.0
+			self._measurements_timer = RepeatedTimer(measurements_interval, self.auto_post_measurement, None, None, True)
+			self._measurements_timer.start()
+			self._logger.info("Started auto-post measurements timer at {}s".format(measurements_interval))
+
+
+	def start_picture_timer(self):
+		if self._settings.get(["auto_post_picture", "enabled"]):
+			picture_interval = self._settings.get(["auto_post_picture", "interval_minutes"]) * 60.0
+			self._picture_timer = RepeatedTimer(picture_interval, self.auto_post_picture, None, None, True)
+			self._picture_timer.start()
+			self._logger.info("Started auto-post picture timer at {}s".format(picture_interval))
+
+	def stop_picture_timer(self):
+		self._picture_timer.stop()
+		self._picture_timer = None
+
+	# Post a json message to the tinamous account api endpoint
 	def post_to_tinamous(self, url_fragment, json):
 		account_name = self._settings.get(['tinamous_settings', 'account_name'])
 		if not account_name:
@@ -280,6 +318,54 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 		password = self._settings.get(['tinamous_settings', 'password'])
 
 		return requests.post(url, json=json, auth=(username, password))
+
+	# Grab a picture and post it to tinamoue.
+	# unique_media_name - comes from settings, or empty if a special post.
+	def post_picture_to_tinamous(self, tag, unique_media_name, create_status_post):
+		self._logger.info("Posting picture to tinamous")
+
+		snapshot_url = self._settings.globalGet(["webcam", "snapshot"])
+		if not snapshot_url:
+			self._logger.info("Unable to post picture to Tinamous. No snapshot Url.")
+			return
+
+			try:
+				import urllib
+				filename, headers = urllib.urlretrieve(snapshot_url)
+			except Exception as e:
+				self._logger.exception("Snapshot error, unable to post picture to Tinamous: %s" % (str(e)))
+			else:
+				self._logger.info("Got image. Filename: {0}, headers: {1}.".format(filename, headers))
+
+				# read the image in as a byte array to push to Tinamous.
+				filebytes = open(filename, "rb").read()
+
+				# And Post the picture to tinamous
+				url_fragment = "api/v1/media"
+
+				message = {}
+				# Message contains 'username' and 'filename' replacement tokens.
+				message['ContentType'] = "image/jpeg"
+				# Byte array from the file. (or use Base64Media)
+				message['Media'] = filebytes
+				message['Caption'] = "Printing, printing printing printing.... {0}".format(tag)
+				message['Description'] = ""
+				message['UniqueMediaName'] = unique_media_name
+				message['Tags'] = ["OctoPrint", tag]
+				message['CreateStatusPost'] = create_status_post
+
+				try:
+					result = self.post_to_tinamous(url_fragment, message)
+					return result.id
+				except Exception, e:
+					self._logger.exception("An error occurred connecting to Tinamous to post a picture:\n {}".format(e.message))
+					return
+
+				if not result.ok:
+					self._logger.exception("An error occurred posting to Tinamous:\n {}".format(result.text))
+					return
+
+
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that

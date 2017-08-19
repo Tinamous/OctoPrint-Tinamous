@@ -22,7 +22,9 @@
         </div>
     </div>
 
-    <h4>{{ _('Post Measurements') }}</h4>
+    <!-- Printer measurements posting -->
+
+    <h4>{{ _('Auto Post Measurements') }}</h4>
 
     <div class="control-group">
         <label class="control-label">Enabled</label>
@@ -38,7 +40,9 @@
         </div>
     </div>
 
-    <h4>{{ _('Post Pictures') }}</h4>
+    <!-- Picture posting -->
+
+    <h4>{{ _('Auto Post Pictures') }}</h4>
 
     <div class="control-group">
         <label class="control-label">Enabled</label>
@@ -57,17 +61,18 @@
     <div class="control-group">
         <label class="control-label">Include Hashtag</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.include_hashtag">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.auto_post_picture.include_hashtag">
         </div>
     </div>
 
     <div class="control-group">
         <label class="control-label">Picture Unique Id</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.media_unique_id">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.auto_post_picture.media_unique_id">
         </div>
     </div>
 
+    <!-- Event notifications -->
 
     <h4>{{ _('Event Notifications') }}</h4>
 
