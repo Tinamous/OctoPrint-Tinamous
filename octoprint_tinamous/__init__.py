@@ -174,10 +174,16 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 
 	def populate_status_message(self, event_settings, payload):
 		username = "somebody"
+
 		# username comes from the "Who's Printing" plugin.
-		if "username" in payload and payload["username"]:
-			# TODO: Lookup the user details from the user_manager.
-			username = payload["username"]
+		# If username is specified and empty (as in, Who's Printing empty notification
+		# then set it to be empty.
+		if "username" in payload:
+			if payload["username"]:
+				# TODO: Lookup the user details from the user_manager.
+				username = payload["username"]
+			else:
+				username = "nobody"
 		elif "name" in payload and payload["name"]:
 			username = payload["name"]
 
