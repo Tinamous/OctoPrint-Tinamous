@@ -1,0 +1,133 @@
+<form class="form-horizontal">
+    <h4>{{ _('Tinamous Account Details') }}</h4>
+
+    <div class="control-group">
+        <label class="control-label">Account Name</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.tinamous_settings.account_name">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label">Username</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.tinamous_settings.username">
+        </div>
+    </div>
+
+        <div class="control-group">
+        <label class="control-label">Password</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.tinamous_settings.password">
+        </div>
+    </div>
+
+    <h4>{{ _('Post Measurements') }}</h4>
+
+    <div class="control-group">
+        <label class="control-label">Enabled</label>
+        <div class="controls">
+            <input type="checkbox" class="input-block-level" data-bind="checked: settings.plugins.tinamous.auto_post_measurements.enabled">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label">Interval (Minutes)</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.auto_post_measurements.interval_minutes">
+        </div>
+    </div>
+
+    <h4>{{ _('Post Pictures') }}</h4>
+
+    <div class="control-group">
+        <label class="control-label">Enabled</label>
+        <div class="controls">
+            <input type="checkbox" class="input-block-level" data-bind="checked: settings.plugins.tinamous.auto_post_picture.enabled">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label">Interval (Minutes)</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.auto_post_picture.interval_minutes">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label">Include Hashtag</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.include_hashtag">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label">Picture Unique Id</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.media_unique_id">
+        </div>
+    </div>
+
+
+    <h4>{{ _('Event Notifications') }}</h4>
+
+    <p>{{ _('Choose the events to publish to Tinamous.') }}</p>
+
+    <div class="control-group">
+        <h5>Print Started</h5>
+        <label class="control-label">Message: </label>
+        <div class="controls" title="{{ _('A print has started.') }}">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.print_events.PrintStarted.Message">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h5>Print Failed</h5>
+        <label class="control-label">Message: </label>
+        <div class="controls" title="{{ _('A print has failed.') }}">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.print_events.PrintFailed.Message">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h5>Print Cancelled</h5>
+        <label class="control-label">Message: </label>
+        <div class="controls" title="{{ _('A print has been cancelled.') }}">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.print_events.PrintCancelled.Message">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h5>Print Done</h5>
+        <label class="control-label">Message: </label>
+        <div class="controls" title="{{ _('A print is done.') }}">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.print_events.PrintDone.Message">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h5>Print Paused</h5>
+        <label class="control-label">Message: </label>
+        <div class="controls" title="{{ _('A print has paused.') }}">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.print_events.PrintPaused.Message">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h5>Print Resumed</h5>
+        <label class="control-label">Message: </label>
+        <div class="controls" title="{{ _('A print has resumed.') }}">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.print_events.PrintResumed.Message">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <h5>Who's Printing</h5>
+        <label class="control-label">Message: </label>
+        <div class="controls" title="{{ _('Who is printing.') }}">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.tinamous.print_events.WhosPrinting.Message">
+        </div>
+    </div>
+
+
+</form>
