@@ -222,6 +222,9 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 		if "reason" in payload and payload["reason"]:
 			reason = payload["reason"]
 
+		# TODO!
+		name = ""
+
 		return event_settings['Message'].format(username=username, filename=filename, elapsedTime=elapsed_time, reason=reason, name=name, labeltype=label_type)
 
 	def post_status_to_tinamous(self, message):
