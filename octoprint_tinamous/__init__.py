@@ -25,6 +25,8 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 		#snapshotUrl = self._settings.globalGet(["webcam", "snapshot"])
 		if self._settings.get(["enabled"]):
 			self.start_timers()
+			interval = self._settings.get(["auto_post_picture", "interval_when_idle_minutes"]) * 60.0
+			self.start_picture_timer(interval)
 
 	#def initialize(self):
 		#self._logger.setLevel(logging.DEBUG)
@@ -45,6 +47,7 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 				enabled=True,
 				# Automatically post a status message (picture) every n-minutes.
 				interval_minutes=5,
+				interval_when_idle_minutes=20,
 				include_hashtag="#TodayOnTheUltimaker",
 				# Tinamous allows for a unique media id so that multiple photos can be
 				# assigned to the one id to allow a timeseries style view.
@@ -92,6 +95,11 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 				),
 				PrintResumed=dict(
 					Message="Phew! Printing has been resumed! Back to work...",
+					Enabled=True,
+					IncludePicture=True,
+				),
+				LabelPrintDone=dict(
+					Message="Badger Label Printed. {filaname} Label Type: {labeltype}",
 					Enabled=True,
 					IncludePicture=True,
 				)
@@ -143,9 +151,13 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 			return
 
 		if event in (Events.PRINT_STARTED, Events.PRINT_RESUMED):
-			self.start_picture_timer()
+			self.stop_picture_timer()
+			interval = self._settings.get(["auto_post_picture", "interval_minutes"]) * 60.0
+			self.start_picture_timer(interval)
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.PRINT_PAUSED):
 			self.stop_picture_timer()
+			interval = self._settings.get(["auto_post_picture", "interval_when_idle_minutes"]) * 60.0
+			self.start_picture_timer(interval)
 
 		# Publish the status message for the event if configured.
 		if event in events and events[event] and events[event]['Enabled']:
@@ -198,13 +210,18 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 			import octoprint.util
 			elapsed_time = octoprint.util.get_formatted_timedelta(datetime.timedelta(seconds=payload["time"]))
 
+		# Just for badger labels
+		label_type = "";
+		if "labeltype" in payload and payload["labeltype"]:
+			labeltype = payload["labeltype"]
+
 		# Reason is injected into the payload by the
 		# print failed dialog box of Who's Printing.
 		reason = "Unknown"
 		if "reason" in payload and payload["reason"]:
 			reason = payload["reason"]
 
-		return event_settings['Message'].format(username=username, filename=filename, elapsedTime=elapsed_time, reason=reason)
+		return event_settings['Message'].format(username=username, filename=filename, elapsedTime=elapsed_time, reason=reason, name=name, labeltype=label_type)
 
 	def post_status_to_tinamous(self, message):
 		try:
@@ -289,12 +306,11 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 			self._logger.info("Started auto-post measurements timer at {}s".format(measurements_interval))
 
 
-	def start_picture_timer(self):
+	def start_picture_timer(self, interval):
 		if self._settings.get(["auto_post_picture", "enabled"]):
-			picture_interval = self._settings.get(["auto_post_picture", "interval_minutes"]) * 60.0
-			self._picture_timer = RepeatedTimer(picture_interval, self.auto_post_picture, None, None, run_first = False)
+			self._picture_timer = RepeatedTimer(interval, self.auto_post_picture, None, None, run_first = False)
 			self._picture_timer.start()
-			self._logger.info("Started auto-post picture timer at {}s".format(picture_interval))
+			self._logger.info("Started auto-post picture timer at {}s".format(interval))
 
 	def stop_picture_timer(self):
 		if self._picture_timer:
