@@ -25,8 +25,9 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 		#snapshotUrl = self._settings.globalGet(["webcam", "snapshot"])
 		if self._settings.get(["enabled"]):
 			self.start_timers()
-			interval = self._settings.get(["auto_post_picture", "interval_when_idle_minutes"]) * 60.0
-			self.start_picture_timer(interval)
+			interval = float(self._settings.get(["auto_post_picture", "interval_when_idle_minutes"]))
+			self._logger.info("Idle picture interval: {0}".format(interval))
+			self.start_picture_timer(interval * 60)
 
 	#def initialize(self):
 		#self._logger.setLevel(logging.DEBUG)
@@ -152,11 +153,11 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 
 		if event in (Events.PRINT_STARTED, Events.PRINT_RESUMED):
 			self.stop_picture_timer()
-			interval = self._settings.get(["auto_post_picture", "interval_minutes"]) * 60.0
+			interval = float(self._settings.get(["auto_post_picture", "interval_minutes"])) * 60.0
 			self.start_picture_timer(interval)
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.PRINT_PAUSED):
 			self.stop_picture_timer()
-			interval = self._settings.get(["auto_post_picture", "interval_when_idle_minutes"]) * 60.0
+			interval = float(self._settings.get(["auto_post_picture", "interval_when_idle_minutes"])) * 60.0
 			self.start_picture_timer(interval)
 
 		# Publish the status message for the event if configured.
@@ -300,7 +301,7 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 
 	def start_timers(self):
 		if self._settings.get(["auto_post_measurements", "enabled"]):
-			measurements_interval = self._settings.get(["auto_post_measurements", "interval_minutes"]) * 60.0
+			measurements_interval = float(self._settings.get(["auto_post_measurements", "interval_minutes"])) * 60.0
 			self._measurements_timer = RepeatedTimer(measurements_interval, self.auto_post_measurement, None, None, True)
 			self._measurements_timer.start()
 			self._logger.info("Started auto-post measurements timer at {}s".format(measurements_interval))
