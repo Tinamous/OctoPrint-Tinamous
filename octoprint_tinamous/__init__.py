@@ -18,7 +18,9 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 
 	def __init__(self):
 		self._timer = None
-		self._auto_post_interval_minutes = 10;
+		self._auto_post_interval_minutes = 10
+		self._measurements_timer = None
+		self._picture_timer = None
 
 	def on_after_startup(self):
 		self._logger.info("Tinamous Printing Plugin on_after_startup")
@@ -100,7 +102,7 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 					IncludePicture=True,
 				),
 				LabelPrintDone=dict(
-					Message="Badger Label Printed. {filaname} Label Type: {labeltype}",
+					Message="Badger Label Printed. {filename}. Label Type: {labeltype}",
 					Enabled=True,
 					IncludePicture=True,
 				)
@@ -144,28 +146,31 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 	##~~ Events hook
 
 	def on_event(self, event, payload):
-		events = self._settings.get(['print_events'], merged=True)
+		try:
+			events = self._settings.get(['print_events'], merged=True)
 
-		# Fired by the Pi Power Plug in when it has measured the power usage/temperature, light level etc.
-		if event == "PiPowerMeasured":
-			self.post_power_measurements(payload)
-			return
+			# Fired by the Pi Power Plug in when it has measured the power usage/temperature, light level etc.
+			if event == "PiPowerMeasured":
+				self.post_power_measurements(payload)
+				return
 
-		if event in (Events.PRINT_STARTED, Events.PRINT_RESUMED):
-			self.stop_picture_timer()
-			interval = float(self._settings.get(["auto_post_picture", "interval_minutes"])) * 60.0
-			self.start_picture_timer(interval)
-		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.PRINT_PAUSED):
-			self.stop_picture_timer()
-			interval = float(self._settings.get(["auto_post_picture", "interval_when_idle_minutes"])) * 60.0
-			self.start_picture_timer(interval)
+			if event in (Events.PRINT_STARTED, Events.PRINT_RESUMED):
+				self.stop_picture_timer()
+				interval = float(self._settings.get(["auto_post_picture", "interval_minutes"])) * 60.0
+				self.start_picture_timer(interval)
+			elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.PRINT_PAUSED):
+				self.stop_picture_timer()
+				interval = float(self._settings.get(["auto_post_picture", "interval_when_idle_minutes"])) * 60.0
+				self.start_picture_timer(interval)
 
-		# Publish the status message for the event if configured.
-		if event in events and events[event] and events[event]['Enabled']:
-			self.post_event_status_message(event, payload)
-		else:
-			self._logger.debug("Tinamous not configured for event: {0}".format(event))
-			return
+			# Publish the status message for the event if configured.
+			if event in events and events[event] and events[event]['Enabled']:
+				self.post_event_status_message(event, payload)
+			else:
+				self._logger.debug("Tinamous not configured for event: {0}".format(event))
+				return
+		except Exception as e:
+			self._logger.error("Error handling event {0}".format(e))
 
 	# Publish a status message for the event.
 	def post_event_status_message(self, event, payload):
