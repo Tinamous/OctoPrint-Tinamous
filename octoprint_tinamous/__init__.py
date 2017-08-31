@@ -218,8 +218,8 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 
 		# Just for badger labels
 		label_type = "";
-		if "labeltype" in payload and payload["labeltype"]:
-			labeltype = payload["labeltype"]
+		if "label_type" in payload and payload["label_type"]:
+			label_type = payload["label_type"]
 
 		# Reason is injected into the payload by the
 		# print failed dialog box of Who's Printing.
