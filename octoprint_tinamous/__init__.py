@@ -104,7 +104,7 @@ class TinamousPlugin(octoprint.plugin.StartupPlugin,
 				LabelPrintDone=dict(
 					Message="Badger Label Printed. {filename}. Label Type: {labeltype}",
 					Enabled=True,
-					IncludePicture=True,
+					IncludePicture=False,
 				)
 			)
 		)
